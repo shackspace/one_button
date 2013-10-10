@@ -2,4 +2,6 @@
 import json
 from relaxxapi.relaxxapi import relaxx
 r = relaxx()
-print(json.dumps(r.get_current()))
+current = r.get_current()
+#print(json.dumps(current))
+print("ssh shack@mpd.shack 'rm \"music/%s\"'" % current["file"])
