@@ -1,0 +1,2 @@
+paramiko==1.12.0
+relaxxapi==0.20dev
