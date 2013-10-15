@@ -22,6 +22,8 @@ state = 0
 
 def init_state():
     state = 0
+    RPIO.setup(loud1, RPIO.OUT)
+    RPIO.setup(loud2, RPIO.OUT)
 
 def start_hal(speed):
     PWM.setup()
@@ -88,6 +90,8 @@ def btn_trans(a,edge):
     # stopped pressing the button but the timeout is not over
     elif not edge and (state is 1 or state is 4):
         state = 0
+        stop_sirene1()
+        stop_sirene2()
         play_next()
     elif not edge and state is 5:
         state = 0
@@ -97,16 +101,19 @@ def btn_trans(a,edge):
         
 def start_sirene1(): 
     print("start Sirene 1")
-
+    RPIO.output(loud1, True)
 
 def start_sirene2(): 
     print("starting Sirene 2")
+    RPIO.output(loud2, True)
 
 def stop_sirene1(): 
     print("stopping Sirene 1")
+    RPIO.output(loud1, False)
 
 def stop_sirene2(): 
     print("stopping Sirene 2")
+    RPIO.output(loud2, False)
 
 def play_radio():
     #TODO play radio
@@ -120,7 +127,6 @@ def play_radio():
 
 def play_next():
     print ("playing next song")
-    return
     try:
         #sanity
         if is_last_song():
@@ -137,12 +143,12 @@ def is_last_song():
 
 def delete_current_music():
     print("delete current music")
-    return
     current = r.get_current()
     if not current:
         print("Nothing is running, bailing out")
         return
     delete_remote_file(current)
+    play_next()
 
 
 def delete_remote_file(current):
@@ -150,8 +156,7 @@ def delete_remote_file(current):
         sftp_delete_remote_file(current["file"])
         tell_gobbelz(current.get("Title", "Unbekannter Title"),
                      current.get("Artist", "Unbekannter Kuenstler"))
-        next_song()
-    except:
+    except :
         print("Cannot delete remote file!")
 
 
