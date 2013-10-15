@@ -15,13 +15,14 @@ button = 4
 loud1 = 21
 loud2 = 22
 light = 17
-hal_speed=20
+hal_speed=15
 
 state = 0
 
 
 def init_state():
     state = 0
+    RPIO.setwarnings(False)
     RPIO.setup(loud1, RPIO.OUT)
     RPIO.setup(loud2, RPIO.OUT)
 
@@ -49,8 +50,11 @@ def start_hal(speed):
      
 
 t1_2 = 1
+timer1=None
 t2_4 = 1
+timer2=None
 t4_5 = 3
+timer3=None
 
 def time3_trans():
     global state
@@ -64,41 +68,63 @@ def time3_trans():
 
 def time2_trans():
     global state
+    global timer3
     if state is 2:
         state = 4
         start_sirene2()
-        Timer(t4_5,time3_trans).start()
+        timer3= Timer(t4_5,time3_trans).start()
     else:
         print("State is not 2, will do nothing")
 
 def time1_trans():
     global state
+    global timer2
     if state is 1:
         state = 2
         start_sirene1()
-        Timer(t2_4,time2_trans).start()
+        timer2=Timer(t2_4,time2_trans).start()
     else:
         print("State is not 1, will do nothing")
 
 
 def btn_trans(a,edge):
     global state
+    global timer1
     print("Button: %s , edge: %s, state: %d" % (str(a), str(edge),state))
     if edge and state is 0:
         state = 1
-        Timer(t1_2,time1_trans).start()
+        timer1=Timer(t1_2,time1_trans).start()
     # stopped pressing the button but the timeout is not over
     elif not edge and (state is 1 or state is 4):
         state = 0
+        disable_all_timers()
         stop_sirene1()
         stop_sirene2()
         play_next()
     elif not edge and state is 5:
         state = 0
+        disable_all_timers()
         delete_current_music()
         
         
-        
+def disable_all_timers():
+    print("disabling all the timers")
+    global timer1
+    global timer2
+    global timer3
+    try:
+        timer1.cancel()
+        print("timer1 canceled")
+    except: pass
+    try:
+        timer2.cancel()
+        print("timer2 canceled")
+    except: pass
+    try:
+        timer3.cancel()
+        print("timer3 canceled")
+    except: pass
+
 def start_sirene1(): 
     print("start Sirene 1")
     RPIO.output(loud1, True)
@@ -198,4 +224,5 @@ if __name__ == "__main__":
     print ("Waiting...")
     RPIO.wait_for_interrupts(threaded=True)
     #Thread(target=start_hal,args=(hal_speed,)).start()
-    start_hal(hal_speed)
+    while True:
+        start_hal(hal_speed)
