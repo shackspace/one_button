@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from threading import Timer
+from threading import Timer,Thread
 import RPIO
 from RPIO import PWM
 import paramiko
@@ -12,28 +12,101 @@ sftp_base_path = "/home/shack/music"
 
 
 button = 4
-loud1 = 18
-loud2 = 21
-light = 22
+loud1 = 21
+loud2 = 22
+light = 17
+hal_speed=20
 
 state = 0
 
 
 def init_state():
-    PWM.setup()
-    PWM.init_channel(0, 1000)
     state = 0
 
+def start_hal(speed):
+    PWM.setup()
+    PWM.init_channel(0 )
+    PWM.set_loglevel(PWM.LOG_LEVEL_ERRORS)
+    current = lower = 300
+    up = True
+    upper = 1800
+    step = 50
+    while 1:
+        PWM.add_channel_pulse(0,light,0,current)
+        if up:
+            if (current + step) < upper:
+                current = current + step
+            else:
+                up = not up
+        else:
+            if (current - step) > lower:
+                current = current - step
+            else:
+                up = not up
+        sleep(1.0/speed)
+     
 
-def tell_gobbelz(name, author):
-    import requests
-    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-    data = {'text': '%s von %s wurde vernichtet!' % (name, author)}
-    #  curl -i -H "content-type: application/json"
-    #     -X POST -d "{\"text\" : \"Hallo shackspace\"}" kiosk.shack:8080/say/
-    requests.post("http://kiosk.shack:8080/say/",
-                  data=json.dumps(data), headers=headers)
- 
+t1_2 = 1
+t2_4 = 1
+t4_5 = 3
+
+def time3_trans():
+    global state
+    if state is 4:
+        state = 5
+        stop_sirene1()
+        stop_sirene2()
+    else:
+        print("State is not 4, will do nothing")
+
+
+def time2_trans():
+    global state
+    if state is 2:
+        state = 4
+        start_sirene2()
+        Timer(t4_5,time3_trans).start()
+    else:
+        print("State is not 2, will do nothing")
+
+def time1_trans():
+    global state
+    if state is 1:
+        state = 2
+        start_sirene1()
+        Timer(t2_4,time2_trans).start()
+    else:
+        print("State is not 1, will do nothing")
+
+
+def btn_trans(a,edge):
+    global state
+    print("Button: %s , edge: %s, state: %d" % (str(a), str(edge),state))
+    if edge and state is 0:
+        state = 1
+        Timer(t1_2,time1_trans).start()
+    # stopped pressing the button but the timeout is not over
+    elif not edge and (state is 1 or state is 4):
+        state = 0
+        play_next()
+    elif not edge and state is 5:
+        state = 0
+        delete_current_music()
+        
+        
+        
+def start_sirene1(): 
+    print("start Sirene 1")
+
+
+def start_sirene2(): 
+    print("starting Sirene 2")
+
+def stop_sirene1(): 
+    print("stopping Sirene 1")
+
+def stop_sirene2(): 
+    print("stopping Sirene 2")
 
 def play_radio():
     #TODO play radio
@@ -46,6 +119,8 @@ def play_radio():
 
 
 def play_next():
+    print ("playing next song")
+    return
     try:
         #sanity
         if is_last_song():
@@ -59,13 +134,11 @@ def is_last_song():
     return r.get_current()["Pos"] == r.get_last()["Pos"]
 
 
-def btn_transition(a,edge):
-    print("Button: %s , edge: %s" % (str(a), str(edge)))
-
 
 def delete_current_music():
+    print("delete current music")
+    return
     current = r.get_current()
-    print(json.dumps(current))
     if not current:
         print("Nothing is running, bailing out")
         return
@@ -77,6 +150,7 @@ def delete_remote_file(current):
         sftp_delete_remote_file(current["file"])
         tell_gobbelz(current.get("Title", "Unbekannter Title"),
                      current.get("Artist", "Unbekannter Kuenstler"))
+        next_song()
     except:
         print("Cannot delete remote file!")
 
@@ -94,6 +168,15 @@ def sftp_delete_remote_file(f):
     sftp.close()
     transport.close()
 
+def tell_gobbelz(name, author):
+    import requests
+    headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+    data = {'text': '%s von %s wurde vernichtet!' % (name, author)}
+    #  curl -i -H "content-type: application/json"
+    #     -X POST -d "{\"text\" : \"Hallo shackspace\"}" kiosk.shack:8080/say/
+    requests.post("http://kiosk.shack:8080/say/",
+                  data=json.dumps(data), headers=headers)
+
 
 if __name__ == "__main__":
     from time import sleep
@@ -101,9 +184,13 @@ if __name__ == "__main__":
     #Board layout
     #channel=11
     init_state() 
+    print("Starting HAL")
+#t.start()
     print("initializing relaxxapi")
     r = relaxx(relaxxurl="http://lounge.mpd.shack/")
     print("adding interrupt")
-    RPIO.add_interrupt_callback(button,callback=rising_state ,pull_up_down=RPIO.PUD_DOWN) #,debounce_timeout_ms=1
+    RPIO.add_interrupt_callback(button,callback=btn_trans,pull_up_down=RPIO.PUD_DOWN,threaded_callback=True) #,debounce_timeout_ms=1
     print ("Waiting...")
-    RPIO.wait_for_interrupts()
+    RPIO.wait_for_interrupts(threaded=True)
+    #Thread(target=start_hal,args=(hal_speed,)).start()
+    start_hal(hal_speed)
