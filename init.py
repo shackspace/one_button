@@ -50,11 +50,9 @@ def start_hal(speed):
      
 
 t1_2 = 1
-timer1=None
+timer=None
 t2_4 = 1
-timer2=None
 t4_5 = 3
-timer3=None
 
 def time3_trans():
     global state
@@ -62,38 +60,41 @@ def time3_trans():
         state = 5
         stop_sirene1()
         stop_sirene2()
+        disable_all_timers()
+        delete_current_music()
+        state = 0
     else:
         print("State is not 4, will do nothing")
 
 
 def time2_trans():
     global state
-    global timer3
+    global timer
     if state is 2:
         state = 4
         start_sirene2()
-        timer3= Timer(t4_5,time3_trans).start()
+        timer= Timer(t4_5,time3_trans).start()
     else:
         print("State is not 2, will do nothing")
 
 def time1_trans():
     global state
-    global timer2
+    global timer
     if state is 1:
         state = 2
         start_sirene1()
-        timer2=Timer(t2_4,time2_trans).start()
+        timer=Timer(t2_4,time2_trans).start()
     else:
         print("State is not 1, will do nothing")
 
 
 def btn_trans(a,edge):
     global state
-    global timer1
+    global timer
     print("Button: %s , edge: %s, state: %d" % (str(a), str(edge),state))
     if edge and state is 0:
         state = 1
-        timer1=Timer(t1_2,time1_trans).start()
+        timer=Timer(t1_2,time1_trans).start()
     # stopped pressing the button but the timeout is not over
     elif not edge and (state is 1 or state is 4 or state is 2):
         state = 0
@@ -102,27 +103,17 @@ def btn_trans(a,edge):
         stop_sirene2()
         play_next()
     elif not edge and state is 5:
-        state = 0
-        disable_all_timers()
-        delete_current_music()
+        print("button released while removing music, all fine")
+    else:
+        print("this should never happen")
         
         
 def disable_all_timers():
     print("disabling all the timers")
-    global timer1
-    global timer2
-    global timer3
+    global timer
     try:
-        timer1.cancel()
-        print("timer1 canceled")
-    except: pass
-    try:
-        timer2.cancel()
-        print("timer2 canceled")
-    except: pass
-    try:
-        timer3.cancel()
-        print("timer3 canceled")
+        timer.cancel()
+        print("timer canceled")
     except: pass
 
 def start_sirene1(): 
