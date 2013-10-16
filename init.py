@@ -95,7 +95,7 @@ def btn_trans(a,edge):
         state = 1
         timer1=Timer(t1_2,time1_trans).start()
     # stopped pressing the button but the timeout is not over
-    elif not edge and (state is 1 or state is 4):
+    elif not edge and (state is 1 or state is 4 or state is 2):
         state = 0
         disable_all_timers()
         stop_sirene1()
