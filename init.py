@@ -14,39 +14,15 @@ sftp_base_path = "/home/shack/music"
 button = 4
 loud1 = 21
 loud2 = 22
-light = 17
-hal_speed=15
 
 state = 0
 
 
 def init_state():
     state = 0
-    RPIO.setwarnings(False)
     RPIO.setup(loud1, RPIO.OUT)
     RPIO.setup(loud2, RPIO.OUT)
 
-def start_hal(speed):
-    PWM.setup()
-    PWM.init_channel(0 )
-    PWM.set_loglevel(PWM.LOG_LEVEL_ERRORS)
-    current = lower = 300
-    up = True
-    upper = 1800
-    step = 50
-    while 1:
-        PWM.add_channel_pulse(0,light,0,current)
-        if up:
-            if (current + step) < upper:
-                current = current + step
-            else:
-                up = not up
-        else:
-            if (current - step) > lower:
-                current = current - step
-            else:
-                up = not up
-        sleep(1.0/speed)
      
 
 t1_2 = 1
@@ -202,18 +178,11 @@ def tell_gobbelz(name, author):
 
 if __name__ == "__main__":
     from time import sleep
-    #BCM layout
-    #Board layout
-    #channel=11
     init_state() 
-    print("Starting HAL")
-#t.start()
     print("initializing relaxxapi")
     r = relaxx(relaxxurl="http://lounge.mpd.shack/")
     print("adding interrupt")
-    RPIO.add_interrupt_callback(button,callback=btn_trans,pull_up_down=RPIO.PUD_DOWN,threaded_callback=True) #,debounce_timeout_ms=1
-    print ("Waiting...")
-    RPIO.wait_for_interrupts(threaded=True)
+    RPIO.add_interrupt_callback(button,callback=btn_trans,pull_up_down=RPIO.PUD_DOWN) #,debounce_timeout_ms=1
+    print ("Start Interrupt handler")
+    RPIO.wait_for_interrupts()
     #Thread(target=start_hal,args=(hal_speed,)).start()
-    while True:
-        start_hal(hal_speed)
