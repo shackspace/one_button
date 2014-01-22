@@ -21,4 +21,3 @@
     # add the following to /etc/rc.local
     tmux new-session -s root -d '/opt/musical_cleansing/start_button.sh'
     tmux new-window -t root:1 '/opt/musical_cleansing/start_hal.sh'
-
