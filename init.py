@@ -77,7 +77,13 @@ def btn_trans(a,edge):
         disable_all_timers()
         stop_sirene1()
         stop_sirene2()
-        play_next()
+        try:
+            play_next()
+        except:
+            tell_gobbelz("Cannot play next song. Sorry:(")
+            tell_gobbelz("Bailing out")
+            sys.exit(1)
+            
     elif not edge and state is 5:
         print("button released while removing music, all fine")
     else:
@@ -114,6 +120,7 @@ def play_radio():
         print("will not skip own sender")
         return
     print("playing radio")
+    tell_gobbelz("Starting Radio Stream")
     r.add_song("http://ice.somafm.com/groovesalad")
     r.play_last()
 
@@ -147,10 +154,10 @@ def delete_current_music():
 def delete_remote_file(current):
     try:
         sftp_delete_remote_file(current["file"])
-        tell_gobbelz(current.get("Title", "Unbekannter Title"),
+        say_song_killed(current.get("Title", "Unbekannter Title"),
                      current.get("Artist", "Unbekannter Kuenstler"))
-    except :
-        print("Cannot delete remote file!")
+    except Exception as e:
+        print("Cannot delete remote file! ( %s ) " %str(e))
 
 
 def sftp_delete_remote_file(f):
@@ -166,10 +173,13 @@ def sftp_delete_remote_file(f):
     sftp.close()
     transport.close()
 
-def tell_gobbelz(name, author):
+def say_song_killed(name, author):
+    tell_gobbelz('%s von %s wurde vernichtet!' % (name, author) )
+
+def tell_gobbelz(text):
     import requests
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-    data = {'text': '%s von %s wurde vernichtet!' % (name, author)}
+    data = {'text': text}
     #  curl -i -H "content-type: application/json"
     #     -X POST -d "{\"text\" : \"Hallo shackspace\"}" kiosk.shack:8080/say/
     requests.post("http://kiosk.shack:8080/say/",
@@ -180,7 +190,12 @@ if __name__ == "__main__":
     from time import sleep
     init_state() 
     print("initializing relaxxapi")
-    r = relaxx(relaxxurl="http://lounge.mpd.shack/")
+    try:
+        r = relaxx(relaxxurl="http://lounge.mpd.shack/")
+    except:
+        tell_gobbelz("EM PE DE unreachable!")
+        tell_gobbelz("Bailing out")
+        sys.exit(1)
     print("adding interrupt")
     RPIO.add_interrupt_callback(button,callback=btn_trans,pull_up_down=RPIO.PUD_DOWN) #,debounce_timeout_ms=1
     print ("Start Interrupt handler")
