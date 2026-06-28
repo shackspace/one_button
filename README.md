@@ -1,3 +1,5 @@
+migrated to new location: https://codeberg.org/shackspace/one_button
+
 # Musical Cleansing
 
 Clean the mpd server from bad music.
